@@ -1,14 +1,14 @@
 //In ai.js
 const { Configuration, OpenAIApi } = require("openai");
 const configuration = new Configuration({
-    apiKey: "YOUR-KEY-HERE",
+    apiKey: "API_KEY_HERE",
 });
 const openai = new OpenAIApi(configuration);
 async function chat(prompt) {
     let answer;
     try {
         const response = await openai.createChatCompletion({
-            model: "gpt-3.5-turbo",
+            model: "gpt-4",
             messages: prompt,
         });
         answer = response.data.choices[0].message.content;
