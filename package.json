@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@discordjs/voice": "^0.16.0",
     "discord.js": "^14.9.0",
     "dotenv": "^16.3.1",
     "ibm_db": "^3.2.2",
@@ -23,6 +24,7 @@
     "sequelize": "^6.34.0",
     "snowflake-sdk": "^1.9.0",
     "sqlite3": "^5.1.6",
-    "tedious": "^16.6.0"
+    "tedious": "^16.6.0",
+    "util": "^0.12.5"
   }
 }

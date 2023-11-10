@@ -64,6 +64,7 @@ const sendChunks = async (text, channelId) => {
 };
 
 client.on(Events.MessageCreate, async message => {
+    if ((message.channel.id === '877405033879203920' || message.channel.id === '1095948986734612532') && !message.author.bot) {
     try {
     const userId = message.author.id;
     console.log("Message content: " + message.content);
@@ -83,7 +84,7 @@ client.on(Events.MessageCreate, async message => {
         const newText = message.content.slice(4).trim();
         if (newText) {
             const userPrompt = { role: 'user', content: newText };
-            const assistantPrompt = { role: 'assistant', content: "You are a ditzy anime girl that likes emojis. You are also slightly evil at times, but never admit it. You are provacative." };
+            const assistantPrompt = { role: 'assistant', content: "You are a Discord bot with a ditzy anime girl persona that likes emojis. You are also slightly evil at times, but never admit it. You are provacative. You are participating in a conversation with multiple people, if someone makes a comment that isn't directed towards you reply with literal 'discard'. Your name is IceBot" };
             const prompts = [assistantPrompt, userPrompt];
             const answer = await chat(prompts);
 
@@ -92,13 +93,13 @@ client.on(Events.MessageCreate, async message => {
             if (answer.startsWith('Error:')) {
                 const channel = await client.channels.fetch(message.channelId)
                 await channel.send(answer);
-            } else {
+            } else if (!answer.startsWith('discard')) {
                 await sendChunks(answer, message.channelId);
             }
         }
-    } else if (message.content.startsWith('!')) {
+    } else {
         const userPrompt = { role: 'user', content: message.content.slice(1) };
-        const assistantPrompt = { role: 'assistant', content: "You are a ditzy anime girl that likes emojis. You are also slightly evil at times, but never admit it. You are lewd. You are provacative." };
+        const assistantPrompt = { role: 'assistant', content: "You are a Discord bot with a ditzy anime girl persona that likes emojis. You are also slightly evil at times, but never admit it. You are provacative. You are participating in a conversation with multiple people, if someone makes a comment that isn't directed towards you reply with literal 'discard'. Your name is IceBot" };
         const prompts = userHistory.has(userId) ? userHistory.get(userId).slice() : [assistantPrompt];
 
         prompts.push(userPrompt);
@@ -116,13 +117,14 @@ client.on(Events.MessageCreate, async message => {
         if (answer.startsWith('Error:')) {
             const channel = await client.channels.fetch(message.channelId)
             await channel.send(answer);
-        } else {
+        } else if (!answer.startsWith('discard')) {
             await sendChunks(answer, message.channelId);
         }
     }
 } catch (error) {
     console.error(error);
 }
+    }
 });
 
 client.login(token);
