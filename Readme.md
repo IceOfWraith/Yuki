@@ -15,4 +15,4 @@ DB_PASSWORD=password to access db (unused for sqlite)
 Then run `npm install` to install the dependencies and `npm start` to start the bot.
 
 
-Just remember to replace <your openai token here> and <your discord bot token here> with your actual tokens.
+Just remember to replace `<your openai token here>` and `<your discord bot token here>` with your actual tokens.

@@ -7,6 +7,7 @@ const openai = new OpenAI({
     apiKey: process.env.AI_TOKEN,
 });
 
+//Send chat requests to OpenAI
 export async function chat(prompt) {
     let answer;
     try {
@@ -22,6 +23,7 @@ export async function chat(prompt) {
     return answer;
 }
 
+//Send image requests to OpenAI
 export async function image(prompt) {
     let answer;
     try {
