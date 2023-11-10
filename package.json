@@ -11,10 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@discordjs/voice": "^0.16.0",
     "discord.js": "^14.9.0",
     "dotenv": "^16.3.1",
-    "ibm_db": "^3.2.2",
     "mariadb": "^3.2.2",
     "mysql2": "^3.6.3",
     "openai": "^4.17.3",
