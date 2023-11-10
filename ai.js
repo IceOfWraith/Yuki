@@ -1,14 +1,11 @@
 import { config } from 'dotenv';
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 
 config();
 
-const token = process.env.AI_TOKEN;
-
-const configuration = new Configuration({
-    apiKey: token,
+const openai = new OpenAI({
+    apiKey: process.env.AI_TOKEN,
 });
-const openai = new OpenAIApi(configuration);
 
 export async function chat(prompt) {
     let answer;

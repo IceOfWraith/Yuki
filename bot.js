@@ -1,38 +1,37 @@
 import { config } from 'dotenv';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
-import sqlite3 from 'sqlite3';
+import { Sequelize } from 'sequelize';
 import { chat, image } from './ai.js';
 
 config();
 
 const token = process.env.BOT_TOKEN;
+const databaseType = process.env.DB_TYPE || 'sqlite'; // Default to SQLite if not specified
+const databaseName = process.env.DB_NAME || 'bot.sqlite';
+let sequelize;
+console.log("Database type: " + databaseType);
 
-const MAX_CHAR_COUNT = 2000;
-let sql;
-let sql2;
-let sql3;
+if (databaseType === 'sqlite') {
+    sequelize = new Sequelize({
+        dialect: databaseType,
+        storage: databaseName
+      });
+} else {
+    const databaseHost = process.env.DB_HOST;
+    const databaseUsername = process.env.DB_USERNAME;
+    const databasePassword = process.env.DB_PASSWORD;
+    sequelize = new Sequelize( databaseName, databaseUsername, databasePassword, {
+        host: databaseHost,
+        dialect: databaseType
+      });
+}
 
-
-const db = new sqlite3.Database('./bot.db', sqlite3.OPEN_READWRITE, (err) => {
-    if (err) {return console.error(err.message);}
-});
-
-sql = `CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, user_name TEXT PRIMARY KEY)`;
-db.run(sql);
-
-sql2 = 'INSERT OR IGNORE INTO users (user_name) VALUES (?)';
-db.run(sql2, ['iceofwraith2'], (err) => {
-    if (err) {return console.error(err.message);}
-});
-
-sql3 = 'SELECT * FROM users';
-db.all(sql3, [], (err, rows) => {
-    if (err) {throw err;}
-    rows.forEach((row) => {
-        console.log(row.user_id, row.user_name);
-    });
-});
-
+try {
+    await sequelize.authenticate();
+    console.log('Connection has been established successfully.');
+} catch (error) {
+    console.error('Unable to connect to the database:', error);
+}
 
 const client = new Client({
     intents: [
