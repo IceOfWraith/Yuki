@@ -17,7 +17,16 @@ export async function chat(prompt) {
         });
         answer = response.choices[0].message.content;
     } catch (error) {
-        answer = "Error: " + error.response.data.error.message;
+        if (error instanceof OpenAI.APIError) {
+            console.error(error.status);  // e.g. 401
+            console.error(error.message); // e.g. The authentication token you passed was invalid...
+            console.error(error.code);  // e.g. 'invalid_api_key'
+            console.error(error.type);  // e.g. 'invalid_request_error'
+            answer = "Error: " + error.message;
+          } else {
+            console.log(error);
+            answer = "Error: " + error;
+          }
     }
     return answer;
 }
@@ -35,8 +44,16 @@ export async function image(prompt) {
         });
         answer = response.data[0].url;
     } catch (error) {
-        answer = "Error: " + error.response.data.error.message;
+        if (error instanceof OpenAI.APIError) {
+            console.error(error.status);  // e.g. 401
+            console.error(error.message); // e.g. The authentication token you passed was invalid...
+            console.error(error.code);  // e.g. 'invalid_api_key'
+            console.error(error.type);  // e.g. 'invalid_request_error'
+            answer = "Error: " + error.message;
+          } else {
+            console.log(error);
+            answer = "Error: " + error;
+          }
     }
-
     return answer;
 }
