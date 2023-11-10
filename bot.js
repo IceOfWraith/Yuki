@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
-import { chat, image } from './ai.js';
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 import sqlite3 from 'sqlite3';
+import { chat, image } from './ai.js';
 
 config();
 
@@ -57,7 +57,8 @@ const sendChunks = async (text, channelId) => {
             }
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        await client.channels.fetch(channelId).then(channel => channel.send(chunk));
+        const channel = await client.channels.fetch(channelId)
+        await channel.send(chunk);
         text = text.slice(chunk.length);
     }
 };
@@ -89,7 +90,8 @@ client.on(Events.MessageCreate, async message => {
             userHistory.set(userId, [assistantPrompt, userPrompt, { role: 'assistant', content: answer }]);
 
             if (answer.startsWith('Error:')) {
-                await client.channels.fetch(message.channelId).then(channel => channel.send(answer));
+                const channel = await client.channels.fetch(message.channelId)
+                await channel.send(answer);
             } else {
                 await sendChunks(answer, message.channelId);
             }
@@ -112,7 +114,8 @@ client.on(Events.MessageCreate, async message => {
         }
 
         if (answer.startsWith('Error:')) {
-            await client.channels.fetch(message.channelId).then(channel => channel.send(answer));
+            const channel = await client.channels.fetch(message.channelId)
+            await channel.send(answer);
         } else {
             await sendChunks(answer, message.channelId);
         }
