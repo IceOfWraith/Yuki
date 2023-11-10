@@ -5,6 +5,7 @@ import { chat, image } from './ai.js';
 
 config();
 
+const MAX_CHAR_COUNT = 2000;
 const token = process.env.BOT_TOKEN;
 const databaseType = process.env.DB_TYPE || 'sqlite'; // Default to SQLite if not specified
 const databaseName = process.env.DB_NAME || 'bot.sqlite';
