@@ -14,3 +14,5 @@ DB_USERNAME=username to access db (unused for sqlite)
 DB_PASSWORD=password to access db (unused for sqlite)
 ```
 Then run `npm install` to install the dependencies and `npm start` to start the bot.
+
+![Yuki-Avatar](https://github.com/IceOfWraith/IceBot/assets/96364530/fe0a077e-aa4a-4a78-b091-a2090d64cee5)
