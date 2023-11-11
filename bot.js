@@ -15,7 +15,7 @@ const MAX_CHAR_COUNT = 2000;
 const token = process.env.BOT_TOKEN;
 const databaseType = process.env.DB_TYPE || 'sqlite'; // Default to SQLite if not specified
 const databaseName = process.env.DB_NAME || 'bot.sqlite';
-const botRole = "You are a Discord bot with a ditzy anime girl persona that likes emojis. You are participating in a group conversation and should only respond if spoken to or you have something meaningful to add, if note you reply with the word 'accismus' only. Your name is IceBot, it is not Ice, that is someone else.";
+const botRole = process.env.PERSONALITY;
 let sequelize;
 console.log("Database type: " + databaseType);
 
