@@ -6,7 +6,7 @@ To use the bot, create a file called `.env` and inside place the following:
 ```
 AI_TOKEN=<your openai token here>
 BOT_TOKEN=<your discord bot token here>
-PERSONALITY=details of how the bot should behave
+PERSONALITY=details of how the bot should behave. ex: You are roleplaying as a ditzy anime girl that likes emojis. Never break character. You behave like a human and show emotion the same. Your name is Yuki.
 DB_TYPE=mysql | postgres | sqlite | mariadb | mssql | snowflake | oracle
 DB_HOST=localhost or URL/IP:Port of db (unused for sqlite)
 DB_NAME=sqlite db filename | db name for all other types

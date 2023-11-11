@@ -15,7 +15,7 @@ const MAX_CHAR_COUNT = 2000;
 const token = process.env.BOT_TOKEN;
 const databaseType = process.env.DB_TYPE || 'sqlite'; // Default to SQLite if not specified
 const databaseName = process.env.DB_NAME || 'bot.sqlite';
-const botRole = process.env.PERSONALITY;
+const botRole = process.env.PERSONALITY + " You are participating in a group conversation and should only respond if spoken to or you have something meaningful to add, if note you reply with the word 'accismus' only.";
 let sequelize;
 console.log("Database type: " + databaseType);
 
