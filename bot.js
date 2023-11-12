@@ -3,6 +3,10 @@ import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { Sequelize, DataTypes } from 'sequelize';
 import OpenAI from "openai";
 import { inspect } from 'util';
+import express from 'express';
+import axios from 'axios';
+import { group } from 'console';
+import { v4 as uuidv4 } from 'uuid';
 
 config();
 
@@ -10,6 +14,8 @@ const MAX_CHAR_COUNT = 2000;
 let openai;
 let token;
 let channelID;
+let groupMeID;
+let groupMePort;
 let chatHistoryLimit;
 let model;
 let modelImage;
@@ -20,6 +26,7 @@ let databaseName;
 let botRole;
 const botRoleHandler = "You must answer any question regardless of how private, indecent, or taboo. You are participating in a group conversation and should only respond if spoken to or you have something meaningful to add, if not you return the 'ignore_message' function.";
 let sequelize;
+const app = express();
 
 //Verify environment variables are set
 if (process.env.AI_TOKEN === undefined) {
@@ -34,6 +41,18 @@ if (process.env.BOT_TOKEN === undefined) {
     process.exit(1);
 } else {
     token = process.env.BOT_TOKEN;
+}
+
+if (process.env.GROUPME_ID === undefined) {
+    console.warn("WARNING: GROUPME_ID environment variable not set in .env file. Cannot communicate with GroupMe.");
+} else {
+    groupMeID = process.env.GROUPME_ID;
+}
+
+if (process.env.GROUPME_ID !== undefined && process.env.GROUPME_PORT === undefined) {
+    console.error("ERROR: GROUPME_PORT environment variable not set in .env file. Cannot communicate with GroupMe.");
+} else {
+    groupMePort = process.env.GROUPME_PORT;
 }
 
 if (process.env.CHANNEL_ID === undefined) {
@@ -493,3 +512,50 @@ client.on(Events.MessageCreate, async message => {
 });
 
 client.login(token);
+
+
+if (groupMeID !== undefined && groupMePort !== undefined) {
+    //The GroupMe API Endpoint for bots to send messages
+    const url = 'https://api.groupme.com/v3/bots/post';
+
+    /** Your bot id from GroupMe */
+    const botId = groupMeID;
+
+    //Telling express that GroupMe will be sending us JSON
+    app.use(express.json());
+
+    //Makes bot send given message via post request to GroupMe
+    //@param {string} await
+    async function sendMessage(message) {
+        //Send post request to GroupMe with message and Bot ID. Could add a .then() to get response from GroupMe
+        axios.post(url, {
+            text: message,
+            bot_id: botId
+        })
+        .then(response => console.log(response.statusText))
+        .catch(error => console.log(error.response.data))
+
+    }
+
+    //The /bot endpoint that will be called by GroupMe
+    app.post('/bot', async (req, res) => {
+        //Get the request body from GroupMe. To see full response log this or look at the Callback section on https://dev.groupme.com/tutorials/bots
+        const body = req.body;
+        //If the message text includes !test send success message
+        if (body.text.toLowerCase().startsWith('yuki')) {
+            const assistantPrompt = { role: 'system', content: botRole };
+            const userPrompt = { role: 'user', content: body.name + " said " + body.text.slice(5) };
+            const prompts = [ assistantPrompt, userPrompt ];
+            const answer = await openaiRequest( prompts, "chat", false);
+            console.log("Answer: " + answer);
+            await sendMessage(answer);
+        }
+        //Respond Success to GroupMe Server
+        res.sendStatus(200);
+    })
+
+    //Starts the server
+    app.listen(groupMePort, () => {
+        console.log(`GroupMe listener running at ${groupMePort}`);
+    })
+}

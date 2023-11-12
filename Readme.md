@@ -6,6 +6,8 @@ To use the bot, create a file called `.env` and inside place the following:
 ```
 AI_TOKEN=<your openai token here>
 BOT_TOKEN=<your discord bot token here>
+GROUPME_ID=<your groupme bot id here>
+GROUPME_PORT=<callback URL listening port>
 CHANNEL_ID=<id of the channel where the bot should speak freely>
 CHAT_HISTORY=<the amount of history to send to openai. WARNING! This exponentially increases costs for requests! (default: 10)>
 PERSONALITY=details of how the bot should behave. ex: You are roleplaying as a ditzy anime girl that likes emojis. Never break character. You behave like a human and show emotion the same. Your name is Yuki.
