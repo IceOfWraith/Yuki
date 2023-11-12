@@ -163,7 +163,7 @@ const Chat = sequelize.define('Chat', {
       allowNull: false
     },
     message: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false
     }
 });
