@@ -42,26 +42,30 @@ try {
 }
 
 const User = sequelize.define('User', {
-  discordUserName: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true
-  },
-  nickname: {
-    type: DataTypes.STRING
-  },
-  pronouns: {
-    type: DataTypes.STRING
-  },
-  age: {
-    type: DataTypes.INTEGER
-  },
-  likes: {
-    type: DataTypes.STRING
-  },
-  dislikes: {
-    type: DataTypes.STRING
-  }
+    discordUserName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true
+    },
+    discordDisplayName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    nickname: {
+       type: DataTypes.STRING
+    },
+    pronouns: {
+       type: DataTypes.STRING
+    },
+    age: {
+       type: DataTypes.INTEGER
+    },
+    likes: {
+       type: DataTypes.STRING
+    },
+    dislikes: {
+       type: DataTypes.STRING
+    }
 });
 await User.sync();
 
@@ -80,27 +84,31 @@ await Chat.sync();
 User.hasMany(Chat);
 Chat.belongsTo(User);
 
-async function userFindOrCreate(discordUserName1, nickname1, pronouns1, age1, likes1, dislikes1) {
+async function userFindOrCreate(discordUserName1, discordDisplayName1, nickname1, pronouns1, age1, likes1, dislikes1) {
     let addUser;
+    console.log("Discord Displplay Name: " + discordDisplayName1);
     try {
         addUser = await User.findOrCreate({
             where: { discordUserName: discordUserName1 },
-            discordUserName: discordUserName1,
-            nickname: nickname1,
-            pronouns: pronouns1,
-            age: age1,
-            likes: likes1,
-            dislikes: dislikes1
+            defaults: {
+                discordUserName: discordUserName1,
+                discordDisplayName: discordDisplayName1,
+                nickname: nickname1,
+                pronouns: pronouns1,
+                age: age1,
+                likes: likes1,
+                dislikes: dislikes1,
+              },
         });
     } catch (error) {
         console.log(error);
     }
-    return addUser[0].id;
+    return addUser;
 }
 
 async function saveChat(userId1, message1) {
     try {
-        const addUser = await Chat.create({ userId: userId1, message: message1 });
+        await Chat.create({ userId: userId1, message: message1 });
     } catch (error) {
         console.log(error);
     }
@@ -111,7 +119,7 @@ async function getChatHistory() {
     let chatHistory;
     try {
         chatHistory = await Chat.findAll({
-            limit: 20,
+            limit: 10,
             order: [ [ 'id', 'DESC' ] ]
         });
     } catch (error) {
@@ -120,7 +128,53 @@ async function getChatHistory() {
     return chatHistory;
 };
 
-await userFindOrCreate("assistant", null, null, null, null, null);
+async function updateUser(discordUsername1, nickname1, pronouns1, age1, likes1, dislikes1) {
+    try {
+        const updateValues = {};
+        const currentUser = await userFindOrCreate(discordUsername1, "", null, null, null, null, null);
+
+        if (nickname1 !== null) {
+            updateValues.nickname = nickname1;
+        }
+
+        if (age1 !== null) {
+            updateValues.age = age1;
+        }
+
+        if (pronouns1 !== null) {
+            updateValues.pronouns = pronouns1;
+        }
+        console.log("Likes: " + likes1);
+        console.log("Current likes: " + currentUser.likes);
+        if (likes1 !== null) {
+            if (currentUser.likes !== null && currentUser.likes !== "" && currentUser.likes !== undefined) {
+                updateValues.likes = currentUser.likes + ", " + likes1;
+            } else {
+                updateValues.likes = likes1;
+            }
+        }
+
+        if (dislikes1 !== null) {
+            if (currentUser.dislikes !== null && currentUser.dislikes !== "" && currentUser.dislikes !== undefined) {
+                updateValues.dislikes = currentUser.dislikes + ", " + dislikes1;
+            } else {
+                updateValues.dislikes = dislikes1;
+            }
+        }
+
+        const updateuserresult = await User.update(updateValues, {
+            where: {
+            discordUserName: discordUsername1
+            }
+        });
+        console.log(updateuserresult);
+    } catch (error) {
+        console.log(error);
+    }
+    return;
+};
+
+await userFindOrCreate("assistant", "Yuki", null, null, null, null, null);
 
 const client = new Client({
     intents: [
@@ -155,22 +209,22 @@ let function_list = [
         }
     },
     {
-        "name": "user_create",
-        "description": "Adds a user to the database to the database that has talked the first time.",
+        "name": "user_update",
+        "description": "Adds details about a user to the database as they appear in the conversation.",
         "parameters": {
             "type": "object",
             "properties": {
                 "nickname": {
                     "type": "string",
-                    "description": "The name the user prefers."
+                    "description": "The name the user prefers to be called."
                 },
                 "pronouns": {
                     "type": "string",
-                    "description": "The ponouns a user identifies as."
+                    "description": "The ponouns the user identifies as."
                 },
                 "age": {
                     "type": "integer",
-                    "description": "The age of a user."
+                    "description": "The age of the user."
                 },
                 "likes": {
                     "type": "string",
@@ -191,22 +245,29 @@ client.once(Events.ClientReady, c => {
 });
 
 //Send chat requests to OpenAI
-async function chat(prompt) {
+async function chat(prompt, functions) {
     let answer;
     try {
-        const response = await openai.chat.completions.create({
-            model: "gpt-4-1106-preview",
-            messages: prompt,
-            functions: function_list
-        });
-
+        let response;
+        if (functions) {
+            response = await openai.chat.completions.create({
+                model: "gpt-4-1106-preview",
+                messages: prompt,
+                functions: function_list
+            });
+        } else {
+            response = await openai.chat.completions.create({
+                model: "gpt-4-1106-preview",
+                messages: prompt
+            });
+        }
         //console.log(response);
         //console.log(inspect(response.choices[0].message, {showHidden: false, depth: null, colors: true}))
 
         if (response.choices[0].finish_reason === "function_call") {
             if (response.choices[0].message.function_call.name === "image_request") {
                 answer = "Image: " + await image(JSON.parse(response.choices[0].message.function_call.arguments).prompt);
-            } else if (response.choices[0].message.function_call.name === "user_create") {
+            } else if (response.choices[0].message.function_call.name === "user_update") {
                 answer = "User: " + response.choices[0].message.function_call.arguments;
             } else if (response.choices[0].message.function_call.name === "ignore_message") {
                 answer = "ignore_message";
@@ -261,8 +322,6 @@ async function image(prompt) {
     return answer;
 }
 
-//const userHistory = new Map();
-
 const sendChunks = async (text, channelId) => {
     while (text.length > 0) {
         let chunk = text.slice(0, MAX_CHAR_COUNT);
@@ -282,37 +341,77 @@ client.on(Events.MessageCreate, async message => {
     if ((message.channel.id === '877405033879203920' || message.channel.id === '1095948986734612532') && !message.author.bot) {
         try {
             const discordUserName = message.author.username;
+            const discordDisplayName = message.author.displayName;
             //console.log("Message content: " + message.content);
 
-            const userId1 = await userFindOrCreate(discordUserName, null, null, null, null, null);
+            let userId1 = await userFindOrCreate(discordUserName, discordDisplayName, null, null, null, null, null);
+            userId1 = userId1[0].id;
 
-//            const userId1 = await getUserId(discordUserName);
-
-            await saveChat(userId1, message.content);
             const chatHistory = await getChatHistory();
             chatHistory.reverse();
-            const assistantPrompt = { role: 'assistant', content: botRole };
+            const assistantPrompt = { role: 'system', content: botRole };
             const prompts = [ assistantPrompt ];
-            const userPrompt = { role: 'user', content: discordUserName + " said " + message.content };
+            const userPrompt = { role: 'user', content: discordDisplayName + " said " + message.content };
+            let processedUserIds = new Set();
+
             for (const chat of chatHistory) {
                 const role = chat.userId === 1 ? 'assistant' : 'user';
                 const messageUser = await User.findByPk(chat.userId);
                 const messageContent = chat.userId !== 1 ? messageUser.discordUserName + " said " + chat.message : chat.message;
                 prompts.push({ role: role, content: messageContent });
+
+                if (!processedUserIds.has(chat.userId) && chat.userId !== 1) {
+                    let userDetailMessage = messageUser.discordUserName;
+
+                    if (messageUser.nickname !== null) {
+                        userDetailMessage += " goes by " + messageUser.nickname;
+                    }
+
+                    if (messageUser.age !== null) {
+                        userDetailMessage += " is " + messageUser.age;
+                    }
+
+                    if (messageUser.pronouns !== null) {
+                        userDetailMessage += " uses " + messageUser.pronouns;
+                    }
+
+                    if (messageUser.likes !== null) {
+                        userDetailMessage += " likes " + messageUser.likes;
+                    }
+
+                    if (messageUser.dislikes !== null) {
+                        userDetailMessage += " dislikes " + messageUser.dislikes;
+                    }
+
+                    const userDetailPrompt = {
+                        role: 'user',
+                        content: userDetailMessage
+                    };
+
+                    prompts.push(userDetailPrompt);
+                      // Add the user ID to the set to mark it as processed
+                    processedUserIds.add(chat.userId);
+                }
             }
-            prompts.push.apply(prompts, userPrompt);
-//            console.log(prompts);
-
-            const answer = await chat(prompts);
-
+            prompts.push(userPrompt);
+            //console.log(prompts);
+            console.log("Prompts: " + JSON.stringify(prompts));
+            let answer = await chat(prompts, true);
+            await saveChat(userId1, message.content);
             const channel = await client.channels.fetch(message.channelId)
+
+            if (answer.startsWith('User: ')) {
+                console.log("Answer: " + answer);
+                await updateUser(discordUserName, JSON.parse(answer.slice(6)).nickname, JSON.parse(answer.slice(6)).pronouns, JSON.parse(answer.slice(6)).age, JSON.parse(answer.slice(6)).likes, JSON.parse(answer.slice(6)).dislikes);
+                answer = await chat(prompts, false);
+                console.log("Answer: " + answer);
+            }
+
             if (answer.startsWith('Error:')) {
                 await channel.send(answer);
             } else if (answer.startsWith('Image: ')) {
-                await channel.send({ files: [{ attachment: answer.slice(7), name: 'image.png' }] });
+                await channel.send(answer.slice(7));
                 saveChat("1", answer.slice(7));
-            } else if (answer.startsWith('User: ')) {
-//                await userCreation(discordUserName, JSON.parse(answer.slice(6)).nickname, JSON.parse(answer.slice(6)).pronouns, JSON.parse(answer.slice(6)).age, JSON.parse(answer.slice(6)).likes, JSON.parse(answer.slice(6)).dislikes);
             } else if (!answer.toLowerCase().includes('ignore_message')) {
                 await saveChat("1", answer.replace(/assistant said/gi, ''));
                 await sendChunks(answer.replace(/assistant said/gi, ''), message.channelId);
