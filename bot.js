@@ -44,42 +44,42 @@ if (process.env.CHANNEL_ID === undefined) {
 }
 
 if (process.env.CHAT_HISTORY === undefined) {
-    console.warn("WARN: CHAT_HISTORY environment variable not set in .env file. Defaulting to 10.");
+    console.warn("WARNING: CHAT_HISTORY environment variable not set in .env file. Defaulting to 10.");
     chatHistoryLimit = 10;
 } else {
     chatHistoryLimit = process.env.CHAT_HISTORY;
 }
 
 if (process.env.PERSONALITY === undefined) {
-    console.warn("WARN: PERSONALITY environment variable not set in .env file. Defaulting to generic assistant.");
+    console.warn("WARNING: PERSONALITY environment variable not set in .env file. Defaulting to generic assistant.");
     botRole = botRoleHandler;
 } else {
     botRole = process.env.PERSONALITY + " " + botRoleHandler;
 }
 
 if (process.env.MODEL === undefined) {
-    console.warn("WARN: MODEL environment variable not set in .env file. Defaulting to GPT-4 Turbo.");
+    console.warn("WARNING: MODEL environment variable not set in .env file. Defaulting to GPT-4 Turbo.");
     model = 'gpt-4-1106-preview';
 } else {
     model = process.env.MODEL;
 }
 
 if (process.env.MODEL_IMAGE === undefined) {
-    console.warn("WARN: MODEL_IMAGE environment variable not set in .env file. Defaulting to DALL-E 3.");
+    console.warn("WARNING: MODEL_IMAGE environment variable not set in .env file. Defaulting to DALL-E 3.");
     modelImage = 'dall-e-3';
 } else {
     modelImage = process.env.MODEL_IMAGE;
 }
 
 if ((process.env.MODEL_IMAGE === 'dall-e-3' || process.env.MODEL_IMAGE === undefined) && process.env.MODEL_IMAGE_QUALITY === undefined) {
-    console.warn("WARN: MODEL_IMAGE_QUALITY environment variable not set in .env file. Defaulting to HD.");
+    console.warn("WARNING: MODEL_IMAGE_QUALITY environment variable not set in .env file. Defaulting to HD.");
     modelImageQuality = 'hd';
 } else {
     modelImageQuality = process.env.MODEL_IMAGE_QUALITY;
 }
 
 if ((process.env.MODEL_IMAGE === 'dall-e-3' || process.env.MODEL_IMAGE === undefined) && process.env.MODEL_IMAGE_SIZE === undefined) {
-    console.warn("WARN: MODEL_IMAGE_SIZE environment variable not set in .env file. Defaulting to 1792x1024.");
+    console.warn("WARNING: MODEL_IMAGE_SIZE environment variable not set in .env file. Defaulting to 1792x1024.");
     modelImageSize = '1792x1024';
 } else if (process.env.MODEL_IMAGE === 'dall-e-2' && process.env.MODEL_IMAGE_SIZE === undefined) {
     console.warn("WARN: MODEL_IMAGE_SIZE environment variable not set in .env file. Defaulting to 1024x1024.");
@@ -89,7 +89,7 @@ if ((process.env.MODEL_IMAGE === 'dall-e-3' || process.env.MODEL_IMAGE === undef
 }
 
 if (process.env.DB_TYPE === undefined) {
-    console.warn("WARN: DB_TYPE environment variable not set in .env file. Defaulting to SQLite.");
+    console.warn("WARNING: DB_TYPE environment variable not set in .env file. Defaulting to SQLite.");
     databaseType = 'sqlite';
 } else {
     databaseType = process.env.DB_TYPE;
@@ -99,7 +99,7 @@ if (process.env.DB_TYPE !== 'sqlite' && process.env.DB_TYPE !== undefined && (pr
     console.error("ERROR: DB_HOST, DB_USERNAME, or DB_PASSWORD environment variable not set in .env file.");
     process.exit(1);
 } else if (process.env.DB_TYPE === 'sqlite' || process.env.DB_NAME === undefined) {
-    console.warn("WARN: DB_NAME environment variable not set in .env file. defaulting to bot.sqlite.");
+    console.warn("WARNING: DB_NAME environment variable not set in .env file. defaulting to bot.sqlite.");
     databaseName = 'bot.sqlite';
 } else {
     databaseName = process.env.DB_NAME;
