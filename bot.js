@@ -10,6 +10,7 @@ const MAX_CHAR_COUNT = 2000;
 let openai;
 let token;
 let channelID;
+let chatHistoryLimit;
 let model;
 let modelImage;
 let modelImageQuality;
@@ -40,6 +41,13 @@ if (process.env.CHANNEL_ID === undefined) {
     process.exit(1);
 } else {
     channelID = process.env.CHANNEL_ID;
+}
+
+if (process.env.CHAT_HISTORY === undefined) {
+    console.warn("WARN: CHAT_HISTORY environment variable not set in .env file. Defaulting to 10.");
+    chatHistoryLimit = 10;
+} else {
+    chatHistoryLimit = process.env.CHAT_HISTORY;
 }
 
 if (process.env.PERSONALITY === undefined) {
@@ -199,7 +207,7 @@ async function getChatHistory() {
     let chatHistory;
     try {
         chatHistory = await Chat.findAll({
-            limit: 10,
+            limit: chatHistoryLimit,
             order: [ [ 'id', 'DESC' ] ]
         });
     } catch (error) {
@@ -324,72 +332,49 @@ client.once(Events.ClientReady, c => {
     console.log(`Ready! Logged in as ${c.user.tag}`);
 });
 
-//Send chat requests to OpenAI
-async function chat(prompt, functions) {
+//Send requests to OpenAI
+async function openaiRequest(prompt, type, functions) {
     let answer;
     try {
         const modelValues = {};
-
-        modelValues.model = model;
-        modelValues.messages = prompt;
-
-        if (functions === true) {
-            modelValues.functions = function_list;
-        }
-
         let response;
-        response = await openai.chat.completions.create( modelValues );
 
-        //console.log(response);
-        //console.log(inspect(response.choices[0].message, {showHidden: false, depth: null, colors: true}))
+        if (type === "chat") {
+            modelValues.model = model;
+            modelValues.messages = prompt;
 
-        if (response.choices[0].finish_reason === "function_call") {
-            if (response.choices[0].message.function_call.name === "image_request") {
-                answer = "Image: " + await image(JSON.parse(response.choices[0].message.function_call.arguments).prompt);
-            } else if (response.choices[0].message.function_call.name === "user_update") {
-                answer = "User: " + response.choices[0].message.function_call.arguments;
-            } else if (response.choices[0].message.function_call.name === "ignore_message") {
-                answer = "ignore_message";
+            if (functions === true) {
+                modelValues.functions = function_list;
             }
 
+            response = await openai.chat.completions.create( modelValues );
+            if (response.choices[0].finish_reason === "function_call") {
+                if (response.choices[0].message.function_call.name === "image_request") {
+                    answer = "Image: " + await openaiRequest(JSON.parse(response.choices[0].message.function_call.arguments).prompt, "image", false);
+                } else if (response.choices[0].message.function_call.name === "user_update") {
+                    answer = "User: " + response.choices[0].message.function_call.arguments;
+                } else if (response.choices[0].message.function_call.name === "ignore_message") {
+                    answer = "ignore_message";
+                }
+
+            } else {
+                answer = response.choices[0].message.content;
+            }
         } else {
-            answer = response.choices[0].message.content;
+            modelValues.model = modelImage;
+            modelValues.prompt = prompt;
+            modelValues.n = 1;
+            if (modelImage === "dall-e-3"){
+                modelValues.quality = modelImageQuality;
+            }
+            modelValues.size = modelImageSize;
+
+            response = await openai.images.generate( modelValues );
+            //console.log(response);
+            answer = response.data[0].url;
         }
-    } catch (error) {
-        if (error instanceof OpenAI.APIError) {
-            console.error(error.status);  // e.g. 401
-            console.error(error.message); // e.g. The authentication token you passed was invalid...
-            console.error(error.code);  // e.g. 'invalid_api_key'
-            console.error(error.type);  // e.g. 'invalid_request_error'
-            answer = "Error: " + error.message;
-          } else {
-            console.log(error);
-            answer = "Error: " + error;
-          }
-    }
-    return answer;
-}
-
-//Send image requests to OpenAI
-async function image(prompt) {
-    let answer;
-    try {
-        const modelValues = {};
-
-        modelValues.model = modelImage;
-        modelValues.prompt = prompt;
-        modelValues.n = 1;
-        if (modelImage === "dall-e-3"){
-            modelValues.quality = modelImageQuality;
-        }
-        modelValues.size = modelImageSize;
-
-        const response = await openai.images.generate( modelValues );
-
         //console.log(response);
-
-        answer = response.data[0].url;
-
+        //console.log(inspect(response.choices[0].message, {showHidden: false, depth: null, colors: true}))
     } catch (error) {
         if (error instanceof OpenAI.APIError) {
             console.error(error.status);  // e.g. 401
@@ -479,14 +464,14 @@ client.on(Events.MessageCreate, async message => {
             prompts.push(userPrompt);
             //console.log(prompts);
             console.log("Prompts: " + JSON.stringify(prompts));
-            let answer = await chat(prompts, true);
+            let answer = await openaiRequest(prompts, "chat", true);
             await saveChat(userId1, message.content);
             const channel = await client.channels.fetch(message.channelId)
 
             if (answer.startsWith('User: ')) {
                 console.log("Answer: " + answer);
                 await updateUser(discordUserName, JSON.parse(answer.slice(6)).nickname, JSON.parse(answer.slice(6)).pronouns, JSON.parse(answer.slice(6)).age, JSON.parse(answer.slice(6)).likes, JSON.parse(answer.slice(6)).dislikes);
-                answer = await chat(prompts, false);
+                answer = await openaiRequest(prompts, "chat", false);
                 console.log("Answer: " + answer);
             }
 

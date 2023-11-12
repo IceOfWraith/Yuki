@@ -1,12 +1,13 @@
 This bot has been contributed to by GameW1izard and his HatBot as well as OpenAI.
 
-The bot is under constant development to add new functionality over time. Currently, it can chat with Discord users and generate images using GPT-4 Turbo and DALL-E 3 HD.
+The bot is under constant development to add new functionality over time. Currently, it can chat with Discord users and generate images using GPT-4 Turbo and DALL-E 3 HD by default. I'd recommend setting it lower to save costs for most use-cases.
 
 To use the bot, create a file called `.env` and inside place the following:
 ```
 AI_TOKEN=<your openai token here>
 BOT_TOKEN=<your discord bot token here>
 CHANNEL_ID=<id of the channel where the bot should speak freely>
+CHAT_HISTORY=<the amount of history to send to openai. WARNING! This exponentially increases costs for requests! (default: 10)>
 PERSONALITY=details of how the bot should behave. ex: You are roleplaying as a ditzy anime girl that likes emojis. Never break character. You behave like a human and show emotion the same. Your name is Yuki.
 MODEL=<openai model to use: gpt-4-1106-preview (default), gpt-4, gpt-4-32k, gpt-3.5-turbo-1106>
 MODEL_IMAGE=<openai image model to use: dall-e-3 (default), dall-e-2>
