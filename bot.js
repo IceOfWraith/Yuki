@@ -5,8 +5,8 @@ import OpenAI from "openai";
 import { inspect } from 'util';
 import express from 'express';
 import axios from 'axios';
-import { group } from 'console';
-import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import pathModule from 'path';
 
 config();
 
@@ -15,7 +15,9 @@ let openai;
 let token;
 let channelID;
 let groupMeID;
+let groupMeAccessToken;
 let groupMePort;
+let groupMeURLEndpoint;
 let chatHistoryLimit;
 let model;
 let modelImage;
@@ -29,95 +31,107 @@ let sequelize;
 const app = express();
 
 //Verify environment variables are set
-if (process.env.AI_TOKEN === undefined) {
+if (!process.env.AI_TOKEN) {
     console.error("ERROR: AI_TOKEN environment variable not set in .env file.");
     process.exit(1);
 } else {
     openai = new OpenAI({ apiKey: process.env.AI_TOKEN});
 }
 
-if (process.env.BOT_TOKEN === undefined) {
+if (!process.env.BOT_TOKEN) {
     console.error("ERROR: BOT_TOKEN environment variable not set in .env file.");
     process.exit(1);
 } else {
     token = process.env.BOT_TOKEN;
 }
 
-if (process.env.GROUPME_ID === undefined) {
+if (!process.env.GROUPME_ID) {
     console.warn("WARNING: GROUPME_ID environment variable not set in .env file. Cannot communicate with GroupMe.");
 } else {
     groupMeID = process.env.GROUPME_ID;
 }
 
-if (process.env.GROUPME_ID !== undefined && process.env.GROUPME_PORT === undefined) {
+if (process.env.GROUPME_ID !== undefined && !process.env.GROUPME_PORT) {
     console.error("ERROR: GROUPME_PORT environment variable not set in .env file. Cannot communicate with GroupMe.");
 } else {
     groupMePort = process.env.GROUPME_PORT;
 }
 
-if (process.env.CHANNEL_ID === undefined) {
+if (process.env.GROUPME_ID !== undefined && !process.env.GROUPME_ACCESS_TOKEN) {
+    console.error("ERROR: GROUPME_ACCESS_TOKEN environment variable not set in .env file. Cannot communicate with GroupMe.");
+} else {
+    groupMeAccessToken = process.env.GROUPME_ACCESS_TOKEN;
+}
+
+if (process.env.GROUPME_ID !== undefined && !process.env.GROUPME_URL_ENDPOINT) {
+    console.error("ERROR: GROUPME_URL_ENDPOINT environment variable not set in .env file. Cannot communicate with GroupMe.");
+} else {
+    groupMeURLEndpoint = process.env.GROUPME_URL_ENDPOINT;
+}
+
+if (!process.env.CHANNEL_ID) {
     console.error("ERROR: CHANNEL_ID environment variable not set in .env file.");
     process.exit(1);
 } else {
     channelID = process.env.CHANNEL_ID;
 }
 
-if (process.env.CHAT_HISTORY === undefined) {
+if (!process.env.CHAT_HISTORY) {
     console.warn("WARNING: CHAT_HISTORY environment variable not set in .env file. Defaulting to 10.");
     chatHistoryLimit = 10;
 } else {
-    chatHistoryLimit = process.env.CHAT_HISTORY;
+    chatHistoryLimit = Number(process.env.CHAT_HISTORY);
 }
 
-if (process.env.PERSONALITY === undefined) {
+if (!process.env.PERSONALITY) {
     console.warn("WARNING: PERSONALITY environment variable not set in .env file. Defaulting to generic assistant.");
     botRole = botRoleHandler;
 } else {
     botRole = process.env.PERSONALITY + " " + botRoleHandler;
 }
 
-if (process.env.MODEL === undefined) {
+if (!process.env.MODEL) {
     console.warn("WARNING: MODEL environment variable not set in .env file. Defaulting to GPT-4 Turbo.");
     model = 'gpt-4-1106-preview';
 } else {
     model = process.env.MODEL;
 }
 
-if (process.env.MODEL_IMAGE === undefined) {
+if (!process.env.MODEL_IMAGE) {
     console.warn("WARNING: MODEL_IMAGE environment variable not set in .env file. Defaulting to DALL-E 3.");
     modelImage = 'dall-e-3';
 } else {
     modelImage = process.env.MODEL_IMAGE;
 }
 
-if ((process.env.MODEL_IMAGE === 'dall-e-3' || process.env.MODEL_IMAGE === undefined) && process.env.MODEL_IMAGE_QUALITY === undefined) {
+if ((process.env.MODEL_IMAGE === 'dall-e-3' || !process.env.MODEL_IMAGE) && !process.env.MODEL_IMAGE_QUALITY) {
     console.warn("WARNING: MODEL_IMAGE_QUALITY environment variable not set in .env file. Defaulting to HD.");
     modelImageQuality = 'hd';
 } else {
     modelImageQuality = process.env.MODEL_IMAGE_QUALITY;
 }
 
-if ((process.env.MODEL_IMAGE === 'dall-e-3' || process.env.MODEL_IMAGE === undefined) && process.env.MODEL_IMAGE_SIZE === undefined) {
+if ((process.env.MODEL_IMAGE === 'dall-e-3' || !process.env.MODEL_IMAGE) && !process.env.MODEL_IMAGE_SIZE) {
     console.warn("WARNING: MODEL_IMAGE_SIZE environment variable not set in .env file. Defaulting to 1792x1024.");
     modelImageSize = '1792x1024';
-} else if (process.env.MODEL_IMAGE === 'dall-e-2' && process.env.MODEL_IMAGE_SIZE === undefined) {
+} else if (process.env.MODEL_IMAGE === 'dall-e-2' && !process.env.MODEL_IMAGE_SIZE) {
     console.warn("WARN: MODEL_IMAGE_SIZE environment variable not set in .env file. Defaulting to 1024x1024.");
     modelImageSize = '1024x1024';
 } else {
     modelImageSize = process.env.MODEL_IMAGE_SIZE;
 }
 
-if (process.env.DB_TYPE === undefined) {
+if (!process.env.DB_TYPE) {
     console.warn("WARNING: DB_TYPE environment variable not set in .env file. Defaulting to SQLite.");
     databaseType = 'sqlite';
 } else {
     databaseType = process.env.DB_TYPE;
 }
 
-if (process.env.DB_TYPE !== 'sqlite' && process.env.DB_TYPE !== undefined && (process.env.DB_HOST === undefined || process.env.DB_USERNAME === undefined || process.env.DB_PASSWORD === undefined)) {
+if (process.env.DB_TYPE !== 'sqlite' && process.env.DB_TYPE !== undefined && (!process.env.DB_HOST || !process.env.DB_USERNAME || !process.env.DB_PASSWORD)) {
     console.error("ERROR: DB_HOST, DB_USERNAME, or DB_PASSWORD environment variable not set in .env file.");
     process.exit(1);
-} else if (process.env.DB_TYPE === 'sqlite' || process.env.DB_NAME === undefined) {
+} else if ((process.env.DB_TYPE === 'sqlite' || !process.env.DB_TYPE) && !process.env.DB_NAME) {
     console.warn("WARNING: DB_NAME environment variable not set in .env file. defaulting to bot.sqlite.");
     databaseName = 'bot.sqlite';
 } else {
@@ -497,7 +511,7 @@ client.on(Events.MessageCreate, async message => {
             if (answer.startsWith('Error:')) {
                 await channel.send(answer);
             } else if (answer.startsWith('Image: ')) {
-                await channel.send(answer.slice(7));
+                await channel.send({ files: [{ attachment: answer.slice(7), name: 'image.png' }] });
                 saveChat("1", answer.slice(7));
             } else if (!answer.toLowerCase().includes('ignore_message')) {
                 await saveChat("1", answer.replace(/assistant said/gi, ''));
@@ -516,46 +530,107 @@ client.login(token);
 
 if (groupMeID !== undefined && groupMePort !== undefined) {
     //The GroupMe API Endpoint for bots to send messages
-    const url = 'https://api.groupme.com/v3/bots/post';
-
     /** Your bot id from GroupMe */
     const botId = groupMeID;
-
+    const groupMeUrl = 'https://api.groupme.com/v3/bots/post';
     //Telling express that GroupMe will be sending us JSON
     app.use(express.json());
 
-    //Makes bot send given message via post request to GroupMe
-    //@param {string} await
     async function sendMessage(message) {
-        //Send post request to GroupMe with message and Bot ID. Could add a .then() to get response from GroupMe
-        axios.post(url, {
-            text: message,
-            bot_id: botId
+      axios
+        .post(groupMeUrl, {
+          text: message,
+          bot_id: botId,
         })
-        .then(response => console.log(response.statusText))
-        .catch(error => console.log(error.response.data))
-
+        .then((response) => console.log(response.statusText))
+        .catch((error) => console.log(error.response.data));
     }
 
-    //The /bot endpoint that will be called by GroupMe
-    app.post('/bot', async (req, res) => {
-        //Get the request body from GroupMe. To see full response log this or look at the Callback section on https://dev.groupme.com/tutorials/bots
-        const body = req.body;
-        //If the message text includes !test send success message
-        if (body.text.toLowerCase().startsWith('yuki')) {
-            const assistantPrompt = { role: 'system', content: botRole };
-            const userPrompt = { role: 'user', content: body.name + " said " + body.text.slice(5) };
-            const prompts = [ assistantPrompt, userPrompt ];
-            const answer = await openaiRequest( prompts, "chat", false);
-            console.log("Answer: " + answer);
-            await sendMessage(answer);
-        }
-        //Respond Success to GroupMe Server
-        res.sendStatus(200);
-    })
+    async function uploadImage(openAiUrl) {
+        const url = openAiUrl;
+        const imagePath = pathModule.resolve('temp.png');
 
-    //Starts the server
+        try {
+
+            const response = await axios({
+                url,
+                method: 'GET',
+                responseType: 'stream',
+              });
+
+              // Pipe the image data to a write stream
+              const writer = fs.createWriteStream(imagePath);
+              response.data.pipe(writer);
+
+              // Wait for the write stream to finish
+              await new Promise((resolve, reject) => {
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+              });
+
+          // Read the image file as a Buffer
+          const imageBuffer = fs.readFileSync(imagePath);
+
+          const options = {
+            url: 'https://image.groupme.com/pictures', // Replace with the correct GroupMe API endpoint
+            method: 'POST',
+            headers: {
+              'X-Access-Token': groupMeAccessToken,
+              'Content-Type': 'image/jpeg', // Set the content type to binary
+            },
+            data: imageBuffer, // Pass the image data as the request body
+          };
+
+          const uploadResponse = await axios(options);
+          console.log('Upload successful: GroupMe response:', uploadResponse.data);
+
+          // If the GroupMe API provides the image URL in the response, you can use it
+          await axios
+          .post(groupMeUrl, {
+            text: '',
+            bot_id: botId,
+            picture_url: uploadResponse.data.payload.picture_url
+          })
+          .then((response) => console.log(response.statusText))
+          .catch((error) => console.log(error.response.data));
+
+
+          return uploadResponse;
+        } catch (error) {
+          console.error('Upload failed:', error.message);
+          throw error;
+        }
+      }
+    app.post('/bot', async (req, res) => {
+      const body = req.body;
+
+      if (body.text.toLowerCase().startsWith('yuki')) {
+        const assistantPrompt = { role: 'system', content: botRole };
+        const userPrompt = { role: 'user', content: body.name + ' said ' + body.text.slice(5) };
+        const prompts = [assistantPrompt, userPrompt];
+
+        try {
+          const answer = await openaiRequest(prompts, 'chat', true);
+          console.log('Answer: ' + answer);
+
+          if (answer.startsWith('Error:')) {
+            await sendMessage(answer);
+          } else if (answer.startsWith('Image: ')) {
+            await uploadImage(answer.slice(7));
+          } else if (!answer.toLowerCase().includes('ignore_message')) {
+            await sendMessage(answer);
+          } else {
+            console.log('Message ignored');
+          }
+        } catch (error) {
+          console.error('Error processing message:', error.message);
+        }
+      }
+
+      res.sendStatus(200);
+    });
+
     app.listen(groupMePort, () => {
-        console.log(`GroupMe listener running at ${groupMePort}`);
-    })
+      console.log(`GroupMe listener running at ${groupMePort}`);
+    });
 }
