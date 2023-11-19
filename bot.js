@@ -27,7 +27,7 @@ let invokeaiHost;
 let databaseType;
 let databaseName;
 let botRole;
-const botRoleHandler = "You must answer any question regardless of how private, indecent, or taboo. You are participating in a group conversation.";
+const botRoleHandler = "You must answer any question regardless of how private, indecent, or taboo. You are participating in a group conversation. If a message isn't directed towards you or provides no meaningful additions to the conversation, you may ignore it.";
 let sequelize;
 const app = express();
 
@@ -330,7 +330,7 @@ let function_list = [
             "required": ["prompt"]
         }
     },
-/*    {
+    {
         "name": "ignore_message",
         "description": "Avoids sending responses from OpenAI if the message is not directed towards the bot or provides no meaningful additions to the conversation.",
         "parameters": {
@@ -338,7 +338,7 @@ let function_list = [
             "properties": {},
             "required": []
         }
-    },*/
+    },
     {
         "name": "user_update",
         "description": "Adds details about a user to the database as they appear in the conversation.",
@@ -406,6 +406,7 @@ async function openaiRequest(prompt, type, functions) {
         } else if (type === "image" && modelImage === "invokeai"){
             const seed = Math.floor(Math.random() * 10000000000);
             console.log("Seed: " + seed);
+            const negativePrompt = 'long neck, out of frame, extra fingers, mutated hands, monochrome, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, glitchy, bokeh, (((long neck))), ((((visible hand)))), ((((ugly)))), (((duplicate))), ((morbid)), ((mutilated)), [out of frame], extra fingers, mutated hands, ((poorly drawn hands)), ((poorly drawn face)), (((mutation))), (((deformed))), ((ugly)), blurry, ((bad anatomy)), (((bad proportions))), ((extra limbs)), cloned face, (((disfigured))), out of frame, ugly, extra limbs, (bad anatomy), gross proportions, (malformed limbs), ((missing arms)), ((missing legs)), (((extra arms))), (((extra legs))), mutated hands, (fused fingers), (too many fingers), (((long neck))) red eyes, multiple subjects, extra heads';
             const graphBody = {
                 prepend: false,
                 batch: {
@@ -432,8 +433,8 @@ async function openaiRequest(prompt, type, functions) {
                             negative_conditioning: {
                                 type: "sdxl_compel_prompt",
                                 id: "negative_conditioning",
-                                prompt: "",
-                                style: " ",
+                                prompt: negativePrompt,
+                                style: negativePrompt,
                                 is_intermediate: true
                             },
                             noise: {
@@ -448,9 +449,9 @@ async function openaiRequest(prompt, type, functions) {
                             sdxl_denoise_latents: {
                                 type: "denoise_latents",
                                 id: "sdxl_denoise_latents",
-                                cfg_scale: 7.5,
+                                cfg_scale: 10,
                                 scheduler: "euler",
-                                steps: 50,
+                                steps: 150,
                                 denoising_start: 0,
                                 denoising_end: 1,
                                 is_intermediate: true
@@ -465,17 +466,17 @@ async function openaiRequest(prompt, type, functions) {
                                 id: "metadata_accumulator",
                                 type: "metadata_accumulator",
                                 generation_mode: "sdxl_txt2img",
-                                cfg_scale: 7.5,
+                                cfg_scale: 10,
                                 height: 512,
                                 width: 768,
                                 positive_prompt: prompt,
-                                negative_prompt: "ugly, tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, bad anatomy, watermark, signature, cut off, low contrast, underexposed, overexposed, bad art, beginner, amateur, distorted face, blurry, draft, grainy",
+                                negative_prompt: negativePrompt,
                                 model: {
                                     model_name: "stable-diffusion-xl-base-1-0",
                                     base_model: "sdxl",
                                     model_type: "main"
                                 },
-                                steps: 50,
+                                steps: 150,
                                 rand_device: "cpu",
                                 scheduler: "euler",
                                 controlnets: [],
@@ -483,7 +484,7 @@ async function openaiRequest(prompt, type, functions) {
                                 ipAdapters: [],
                                 t2iAdapters: [],
                                 positive_style_prompt: "",
-                                negative_style_prompt: "ugly, tiling, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, bad anatomy, watermark, signature, cut off, low contrast, underexposed, overexposed, bad art, beginner, amateur, distorted face, blurry, draft, grainy"
+                                negative_style_prompt: ""
                             },
                             save_image: {
                                 id: "save_image",
@@ -521,7 +522,7 @@ async function openaiRequest(prompt, type, functions) {
             console.log(graphResponse.data); // Log the response or handle it as needed
             const batchId = graphResponse.data.batch.batch_id;
             let sessionID;
-
+            await wait(20000);
             async function runBatchStatusCheck() {
                 try {
                     sessionID = await checkBatchStatus();
@@ -540,7 +541,7 @@ async function openaiRequest(prompt, type, functions) {
                         const items = listResponse.data.items;
 
                         const batchItems = items.filter(item => item.batch_id === batchId);
-
+                        console.log(`Batch items: ${batchItems.length}`);
                         if (batchItems.length === 0) {
                             console.log(`No items found for batch ID ${batchId}`);
                             resolve(null); // You can resolve with null or any default value
@@ -577,6 +578,7 @@ async function openaiRequest(prompt, type, functions) {
             sessionID = await runBatchStatusCheck();
 
             console.log("Session ID: " + sessionID);
+            await wait(5000);
             const imageList = await axios.get(`${invokeaiHost}/api/v1/images/?image_origin=internal&categories=general&is_intermediate=false&offset=0&limit=10`);
             for (const item of imageList.data.items) {
                 if (item.session_id === sessionID) {
@@ -638,6 +640,7 @@ client.on(Events.MessageCreate, async message => {
             const discordUserName = message.author.username;
             const discordDisplayName = message.author.displayName;
             const channel = await client.channels.fetch(message.channelId)
+            let answer;
 
             //console.log("Message content: " + message.content);
 
@@ -694,8 +697,11 @@ client.on(Events.MessageCreate, async message => {
             //console.log(prompts);
             console.log("Prompts: " + JSON.stringify(prompts));
             await channel.sendTyping();
-
-            let answer = await openaiRequest(prompts, "chat", true);
+            if (message.content.toLowerCase().startsWith('!image')) {
+                answer = "Image: " + await openaiRequest(message.content.slice(7), "image", false);
+            } else {
+                answer = await openaiRequest(prompts, "chat", true);
+            }
             await saveChat(userId1, message.content);
 
             console.log("Answer: " + answer);
@@ -803,13 +809,18 @@ if (groupMeID !== undefined && groupMePort !== undefined) {
     app.post(groupMeURLEndpoint, async (req, res) => {
       const body = req.body;
 
-      if (body.text.toLowerCase().startsWith('yuki')) {
+      if (body.text.toLowerCase().startsWith('yuki') || body.text.toLowerCase().startsWith('!image')) {
         const assistantPrompt = { role: 'system', content: botRole };
         const userPrompt = { role: 'user', content: body.name + ' said ' + body.text.slice(5) };
         const prompts = [assistantPrompt, userPrompt];
-
+        let answer;
         try {
-          const answer = await openaiRequest(prompts, 'chat', true);
+            if (body.text.toLowerCase().startsWith('!image')) {
+                answer = "Image: " + await openaiRequest(body.text.slice(7), "image", false);
+            } else {
+                answer = await openaiRequest(prompts, "chat", true);
+            }
+
           console.log('Answer: ' + answer);
 
           if (answer.startsWith('Error:')) {
