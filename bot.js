@@ -644,28 +644,36 @@ client.on(Events.MessageCreate, async message => {
 
             //console.log("Message content: " + message.content);
 
-            let userId1 = await userFindOrCreate(discordUserName, discordDisplayName, null, null, null, null, null);
-            userId1 = userId1[0].id;
+            let userIDDetails = await userFindOrCreate(discordUserName, discordDisplayName, null, null, null, null, null);
+            const userId1 = userIDDetails[0].id;
 
             const chatHistory = await getChatHistory();
             chatHistory.reverse();
             const assistantPrompt = { role: 'system', content: botRole };
             const prompts = [ assistantPrompt ];
-            const userPrompt = { role: 'user', content: discordDisplayName + " said " + message.content };
+            let nickname;
+            if (userIDDetails[0].nickname !== null) {
+                nickname = userIDDetails[0].nickname;
+            } else {
+                nickname = discordDisplayName;
+            }
+            const userPrompt = { role: 'user', content: nickname + " said " + message.content };
             let processedUserIds = new Set();
 
             for (const chat of chatHistory) {
                 const role = chat.userId === 1 ? 'assistant' : 'user';
                 const messageUser = await User.findByPk(chat.userId);
-                const messageContent = chat.userId !== 1 ? messageUser.discordUserName + " said " + chat.message : chat.message;
+                if (messageUser.nickname !== null) {
+                    nickname = messageUser.nickname;
+                } else {
+                    nickname = messageUser.discordUserName;
+                }
+                const messageContent = chat.userId !== 1 ? nickname + " said " + chat.message : chat.message;
                 prompts.push({ role: role, content: messageContent });
 
-                if (!processedUserIds.has(chat.userId) && chat.userId !== 1) {
-                    let userDetailMessage = messageUser.discordUserName;
+                if (!processedUserIds.has(chat.userId) && chat.userId !== 1 && (messageUser.pronouns !== null || messageUser.age !== null || messageUser.likes !== null || messageUser.dislikes !== null)) {
 
-                    if (messageUser.nickname !== null) {
-                        userDetailMessage += " goes by " + messageUser.nickname;
-                    }
+                    let userDetailMessage = nickname;
 
                     if (messageUser.age !== null) {
                         userDetailMessage += " is " + messageUser.age;
