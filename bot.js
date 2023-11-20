@@ -153,7 +153,8 @@ console.log("Database type: " + databaseType);
 if (databaseType === 'sqlite') {
     sequelize = new Sequelize({
         dialect: databaseType,
-        storage: databaseName
+        storage: databaseName,
+        logging: false
     });
 } else {
     const databaseHost = process.env.DB_HOST;
@@ -161,7 +162,8 @@ if (databaseType === 'sqlite') {
     const databasePassword = process.env.DB_PASSWORD;
     sequelize = new Sequelize( databaseName, databaseUsername, databasePassword, {
         host: databaseHost,
-        dialect: databaseType
+        dialect: databaseType,
+        logging: false
       });
 }
 
@@ -275,8 +277,6 @@ async function updateUser(discordUsername1, nickname1, pronouns1, age1, likes1, 
         if (pronouns1 !== null) {
             updateValues.pronouns = pronouns1;
         }
-        console.log("Likes: " + likes1);
-        console.log("Current likes: " + currentUser.likes);
         if (likes1 !== null) {
             if (currentUser.likes !== null && currentUser.likes !== "" && currentUser.likes !== undefined) {
                 updateValues.likes = currentUser.likes + ", " + likes1;
@@ -293,12 +293,11 @@ async function updateUser(discordUsername1, nickname1, pronouns1, age1, likes1, 
             }
         }
 
-        const updateuserresult = await User.update(updateValues, {
+        await User.update(updateValues, {
             where: {
             discordUserName: discordUsername1
             }
         });
-        console.log(updateuserresult);
     } catch (error) {
         console.error(error);
     }
@@ -394,7 +393,6 @@ async function openaiRequest(prompt, type, functions) {
             if (response.choices[0].finish_reason === "function_call") {
                 if (response.choices[0].message.function_call.name === "image_request") {
                     answer = "Image: " + await openaiRequest(JSON.parse(response.choices[0].message.function_call.arguments).prompt, "image", false);
-                    console.log("After image request");
                 } else if (response.choices[0].message.function_call.name === "user_update") {
                     answer = "User: " + response.choices[0].message.function_call.arguments;
                 } else if (response.choices[0].message.function_call.name === "ignore_message") {
@@ -519,14 +517,12 @@ async function openaiRequest(prompt, type, functions) {
                 }
             };
             const graphResponse = await axios.post(`${invokeaiHost}/api/v1/queue/default/enqueue_batch`, graphBody);
-            console.log(graphResponse.data); // Log the response or handle it as needed
             const batchId = graphResponse.data.batch.batch_id;
             let sessionID;
             await wait(20000);
             async function runBatchStatusCheck() {
                 try {
                     sessionID = await checkBatchStatus();
-                    console.log("Session ID outside function call:", sessionID);
                 } catch (error) {
                     console.error("Error:", error);
                     // Handle the error as needed
@@ -541,7 +537,6 @@ async function openaiRequest(prompt, type, functions) {
                         const items = listResponse.data.items;
 
                         const batchItems = items.filter(item => item.batch_id === batchId);
-                        console.log(`Batch items: ${batchItems.length}`);
                         if (batchItems.length === 0) {
                             console.log(`No items found for batch ID ${batchId}`);
                             resolve(null); // You can resolve with null or any default value
@@ -555,7 +550,6 @@ async function openaiRequest(prompt, type, functions) {
                         if (completedItems.length === batchItems.length) {
                             console.log(`All items in batch ${batchId} have been completed.`);
                             sessionID = batchItems[0].session_id;
-                            console.log("Session ID: " + sessionID);
                             resolve(sessionID); // Resolve with the session ID or any other value you want to return
                         } else {
                             // Wait for some time before checking again
@@ -577,7 +571,6 @@ async function openaiRequest(prompt, type, functions) {
 
             sessionID = await runBatchStatusCheck();
 
-            console.log("Session ID: " + sessionID);
             await wait(5000);
             const imageList = await axios.get(`${invokeaiHost}/api/v1/images/?image_origin=internal&categories=general&is_intermediate=false&offset=0&limit=10`);
             for (const item of imageList.data.items) {
@@ -587,7 +580,6 @@ async function openaiRequest(prompt, type, functions) {
                     answer = `${invokeaiHost}/api/v1/images/i/${item.image_name}/full`;
                 }
             }
-            console.log(answer);
 
         } else {
             modelValues.model = modelImage;
@@ -703,7 +695,6 @@ client.on(Events.MessageCreate, async message => {
             }
             prompts.push(userPrompt);
             //console.log(prompts);
-            console.log("Prompts: " + JSON.stringify(prompts));
             await channel.sendTyping();
             if (message.content.toLowerCase().startsWith('!image')) {
                 answer = "Image: " + await openaiRequest(message.content.slice(7), "image", false);
@@ -712,12 +703,9 @@ client.on(Events.MessageCreate, async message => {
             }
             await saveChat(userId1, message.content);
 
-            console.log("Answer: " + answer);
             if (answer.startsWith('User: ')) {
-                console.log("Answer: " + answer);
                 await updateUser(discordUserName, JSON.parse(answer.slice(6)).nickname, JSON.parse(answer.slice(6)).pronouns, JSON.parse(answer.slice(6)).age, JSON.parse(answer.slice(6)).likes, JSON.parse(answer.slice(6)).dislikes);
                 answer = await openaiRequest(prompts, "chat", false);
-                console.log("Answer: " + answer);
             }
 
             if (answer.startsWith('Error:')) {
@@ -726,7 +714,6 @@ client.on(Events.MessageCreate, async message => {
                 await channel.send({ files: [{ attachment: answer.slice(7), name: 'image.png' }] });
                 saveChat("1", answer.slice(7));
             } else if (!answer.toLowerCase().includes('ignore_message')) {
-                console.log("Answer: " + answer);
                 await saveChat("1", answer.replace(/assistant said/gi, ''));
                 await sendChunks(answer.replace(/assistant said/gi, ''), message.channelId);
             } else {
@@ -828,8 +815,6 @@ if (groupMeID !== undefined && groupMePort !== undefined) {
             } else {
                 answer = await openaiRequest(prompts, "chat", true);
             }
-
-          console.log('Answer: ' + answer);
 
           if (answer.startsWith('Error:')) {
             await sendMessage(answer);
