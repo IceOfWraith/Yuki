@@ -30,7 +30,9 @@ Then run `npm install` to install the dependencies and `npm start` to start the 
 
 Commands
 -
-    - !image - Creates an image request. If using OpenAI for the MODEL, you can ask directly instead of using commands.
+```
+!image - Creates an image request. If using OpenAI for the MODEL, you can ask directly instead of using commands.
+```
 
 My recommended setup (changes every week)
 -
