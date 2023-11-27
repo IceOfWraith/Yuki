@@ -521,9 +521,9 @@ async function openaiRequest(prompt, type, functions) {
                                 fp32: true,
                                 is_intermediate: true
                             },
-                            metadata_accumulator: {
-                                id: "metadata_accumulator",
-                                type: "metadata_accumulator",
+                            core_metadata: {
+                                id: "core_metadata",
+                                type: "core_metadata",
                                 generation_mode: "sdxl_txt2img",
                                 cfg_scale: 10,
                                 height: 512,
@@ -562,9 +562,9 @@ async function openaiRequest(prompt, type, functions) {
                             { source: { node_id: "negative_conditioning", field: "conditioning" }, destination: { node_id: "sdxl_denoise_latents", field: "negative_conditioning" } },
                             { source: { node_id: "noise", field: "noise" }, destination: { node_id: "sdxl_denoise_latents", field: "noise" } },
                             { source: { node_id: "sdxl_denoise_latents", field: "latents" }, destination: { node_id: "latents_to_image", field: "latents" } },
-                            { source: { node_id: "metadata_accumulator", field: "metadata" }, destination: { node_id: "latents_to_image", field: "metadata" } },
+                            { source: { node_id: "core_metadata", field: "metadata" }, destination: { node_id: "latents_to_image", field: "metadata" } },
                             { source: { node_id: "sdxl_model_loader", field: "vae" }, destination: { node_id: "latents_to_image", field: "vae" } },
-                            { source: { node_id: "metadata_accumulator", field: "metadata" }, destination: { node_id: "save_image", field: "metadata" } },
+                            { source: { node_id: "core_metadata", field: "metadata" }, destination: { node_id: "save_image", field: "metadata" } },
                             { source: { node_id: "latents_to_image", field: "image" }, destination: { node_id: "save_image", field: "image" } }
                         ]
                     },
@@ -572,7 +572,7 @@ async function openaiRequest(prompt, type, functions) {
                     data: [
                         [
                             { node_path: "noise", field_name: "seed", items: [seed] },
-                            { node_path: "metadata_accumulator", field_name: "seed", items: [seed] }
+                            { node_path: "core_metadata", field_name: "seed", items: [seed] }
                         ]
                     ]
                 }
