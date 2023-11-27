@@ -34,8 +34,11 @@ My recommended setup (changes every week)
 -
 
 Chat: text-generation-webui
+
 Inside the CMD_FLAGS.txt - `--listen --api --api-port 4000 --model llama-2-7B --character Yuki --verbose --auto-devices --load-in-4bit --use_double_quant --compute_dtype bfloat16 --quant_type fp4`
+
 This results in roughly 20 second responses using a 4070 ti
 
 Image: InvokeAI
+
 Currently, this is not configurable and uses settings defined in the bot.js code.
