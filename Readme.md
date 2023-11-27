@@ -28,7 +28,9 @@ NATURAL_SPEECH=<true/false, openai only, the bot will attempt to only speak when
 ```
 Then run `npm install` to install the dependencies and `npm start` to start the bot.
 
-![Yuki-Avatar](https://github.com/IceOfWraith/IceBot/assets/96364530/fe0a077e-aa4a-4a78-b091-a2090d64cee5)
+Commands
+-
+    - !image - Creates an image request. If using OpenAI for the MODEL, you can ask directly instead of using commands.
 
 My recommended setup (changes every week)
 -
@@ -42,3 +44,5 @@ This results in roughly 20 second responses using a 4070 ti
 Image: InvokeAI
 
 Currently, this is not configurable and uses settings defined in the bot.js code.
+
+![Yuki-Avatar](https://github.com/IceOfWraith/IceBot/assets/96364530/fe0a077e-aa4a-4a78-b091-a2090d64cee5)
