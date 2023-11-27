@@ -33,7 +33,7 @@ Then run `npm install` to install the dependencies and `npm start` to start the 
 My recommended setup (changes every week)
 -
 
-Chat: text-generation-webui
+Chat: text-generation-webui using [Llama-2-7b-chat-hf](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf) (requires filling out a Meta form, but instantly approves)
 
 Inside the CMD_FLAGS.txt - `--listen --api --api-port 4000 --model llama-2-7B --character Yuki --verbose --auto-devices --load-in-4bit --use_double_quant --compute_dtype bfloat16 --quant_type fp4`
 
