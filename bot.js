@@ -449,7 +449,8 @@ async function openaiRequest(prompt, type, functions) {
                 const requestBody = {
                     messages: prompt,
                     mode: "chat",
-                    character: character
+                    character: character,
+                    preset: "Midnight Enigma"
                   };
                   console.log(requestBody);
                   try {
@@ -500,17 +501,17 @@ async function openaiRequest(prompt, type, functions) {
                                 type: "noise",
                                 id: "noise",
                                 seed: 0,
-                                width: 768,
-                                height: 512,
+                                width: 1024,
+                                height: 1024,
                                 use_cpu: true,
                                 is_intermediate: true
                             },
                             sdxl_denoise_latents: {
                                 type: "denoise_latents",
                                 id: "sdxl_denoise_latents",
-                                cfg_scale: 10,
-                                scheduler: "euler",
-                                steps: 150,
+                                cfg_scale: 12,
+                                scheduler: "dpmpp_2m_k",
+                                steps: 50,
                                 denoising_start: 0,
                                 denoising_end: 1,
                                 is_intermediate: true
@@ -525,9 +526,9 @@ async function openaiRequest(prompt, type, functions) {
                                 id: "core_metadata",
                                 type: "core_metadata",
                                 generation_mode: "sdxl_txt2img",
-                                cfg_scale: 10,
-                                height: 512,
-                                width: 768,
+                                cfg_scale: 12,
+                                height: 1024,
+                                width: 1024,
                                 positive_prompt: prompt,
                                 negative_prompt: negativePrompt,
                                 model: {
@@ -535,9 +536,9 @@ async function openaiRequest(prompt, type, functions) {
                                     base_model: "sdxl",
                                     model_type: "main"
                                 },
-                                steps: 150,
+                                steps: 50,
                                 rand_device: "cpu",
-                                scheduler: "euler",
+                                scheduler: "dpmpp_2m_k",
                                 controlnets: [],
                                 loras: [],
                                 ipAdapters: [],
@@ -580,7 +581,7 @@ async function openaiRequest(prompt, type, functions) {
             const graphResponse = await axios.post(`${invokeaiHost}/api/v1/queue/default/enqueue_batch`, graphBody);
             const batchId = graphResponse.data.batch.batch_id;
             let sessionID;
-            await wait(20000);
+            await wait(5000);
             async function runBatchStatusCheck() {
                 try {
                     sessionID = await checkBatchStatus();
