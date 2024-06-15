@@ -917,7 +917,15 @@ client.on(Events.MessageCreate, async message => {
             } else {
                 nickname = discordDisplayName;
             }
-            const userPrompt = { role: 'user', content: nickname + " said " + message.content };
+            let messageFiltered;
+            if (message.content.toLowerCase().startsWith('!yuki')) {
+                messageFiltered = message.content.slice(6);
+            } else if (message.content.toLowerCase().startsWith('!yukiimage')) {
+                messageFiltered = message.content.slice(11);
+            } else {
+                messageFiltered = message.content;
+            }
+            const userPrompt = { role: 'user', content: nickname + " said " + messageFiltered };
             let processedUserIds = new Set();
 
             for (const chat of chatHistory) {
@@ -926,7 +934,7 @@ client.on(Events.MessageCreate, async message => {
                 if (messageUser.nickname !== null) {
                     nickname = messageUser.nickname;
                 } else {
-                    nickname = messageUser.discordUserName;
+                    nickname = messageUser.discordDisplayName;
                 }
                 const messageContent = chat.userId !== 1 ? nickname + " said " + chat.message : chat.message;
                 prompts.push({ role: role, content: messageContent });
@@ -970,8 +978,8 @@ client.on(Events.MessageCreate, async message => {
                     await channel.sendTyping();
                 }, 9000);
 
-                answer = "Image: " + await openaiRequest(message.content.slice(7), "image", false);
-                await saveChat(userId1, null, message.content);
+                answer = "Image: " + await openaiRequest(messageFiltered, "image", false);
+                await saveChat(userId1, null, messageFiltered);
             } else if (message.content.toLowerCase().startsWith('!yukiclearchat')) {
                 await channel.sendTyping();
                 intervalId = setInterval(async () => {
@@ -1020,9 +1028,8 @@ client.on(Events.MessageCreate, async message => {
                 intervalId = setInterval(async () => {
                     await channel.sendTyping();
                 }, 9000);
-
                 answer = await openaiRequest(prompts, "chat", true);
-                await saveChat(userId1, null, message.content);
+                await saveChat(userId1, null, messageFiltered);
             } else {
                 return;
             }
