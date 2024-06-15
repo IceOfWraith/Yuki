@@ -9,7 +9,7 @@ AI_TOKEN=<your openai token here>
 BOT_TOKEN=<your discord bot token here>
 GROUPME_ID=<your groupme bot id here>
 GROUPME_PORT=<callback URL listening port>
-CHANNEL_ID=<id of the channel where the bot should speak freely>
+CHANNEL_ID=<comma separated list of id's for the channels where the bot should speak>
 CHAT_HISTORY=<the amount of history to send to openai. WARNING! This exponentially increases costs for requests! (default: 10)>
 PERSONALITY=details of how the bot should behave. if using text-generation-webui you should configure a character in the gui and use the character setting below. ex: You are roleplaying as a ditzy anime girl that likes emojis. Never break character. You behave like a human and show emotion the same. Your name is Yuki.
 CHARACTER=<name of character when using text-generation-webui>
@@ -24,7 +24,7 @@ DB_NAME=sqlite db filename | db name for all other types
 DB_HOST=localhost or URL/IP:Port of db (unused for sqlite)
 DB_USERNAME=username to access db (unused for sqlite)
 DB_PASSWORD=password to access db (unused for sqlite)
-NATURAL_SPEECH=<true/false, openai only, the bot will attempt to only speak when spoken to automatically>
+NATURAL_SPEECH=<true/false, the bot will attempt to only speak when spoken to automatically (openai only), otherwise disables the need to prefix messages with "!yuki">
 ```
 Then run `npm install` to install the dependencies and `npm start` to start the bot.
 
