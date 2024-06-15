@@ -891,17 +891,12 @@ const sendChunks = async (text, message) => {
 };
 
 client.on(Events.MessageCreate, async message => {
-    if (message.channel.id === channelID && !message.author.bot) {
+    if (channelID.includes(message.channel.id) && !message.author.bot) {
         try {
             const discordUserName = message.author.username;
             const discordDisplayName = message.author.displayName;
             const channel = await client.channels.fetch(message.channelId)
             let answer;
-
-            await channel.sendTyping();
-            const intervalId = setInterval(async () => {
-                await channel.sendTyping();
-            }, 9000);
 
             //console.log("Message content: " + message.content);
 
@@ -964,10 +959,23 @@ client.on(Events.MessageCreate, async message => {
             }
             prompts.push(userPrompt);
             //console.log(prompts);
-            if (message.content.toLowerCase().startsWith('!image')) {
+            let intervalId;
+            if (message.content.toLowerCase().startsWith('!yukiimage')) {
+                await channel.sendTyping();
+                intervalId = setInterval(async () => {
+                    await channel.sendTyping();
+                }, 9000);
+
                 answer = "Image: " + await openaiRequest(message.content.slice(7), "image", false);
-            } else {
+            } else if (message.content.toLowerCase().startsWith('!yuki') || naturalSpeech === "true") {
+                await channel.sendTyping();
+                intervalId = setInterval(async () => {
+                    await channel.sendTyping();
+                }, 9000);
+
                 answer = await openaiRequest(prompts, "chat", true);
+            } else {
+                return;
             }
             await saveChat(userId1, message.content);
 
