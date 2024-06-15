@@ -230,6 +230,10 @@ const Chat = sequelize.define('Chat', {
       type: DataTypes.INTEGER,
       allowNull: false
     },
+    originalId: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
     message: {
       type: DataTypes.TEXT,
       allowNull: false
@@ -262,9 +266,9 @@ async function userFindOrCreate(discordUserName1, discordDisplayName1, nickname1
     return addUser;
 }
 
-async function saveChat(userId1, message1) {
+async function saveChat(userId1, userId2, message1) {
     try {
-        await Chat.create({ userId: userId1, message: message1 });
+        await Chat.create({ userId: userId1, originalId: userId2, message: message1 });
     } catch (error) {
         console.error(error);
     }
@@ -967,6 +971,50 @@ client.on(Events.MessageCreate, async message => {
                 }, 9000);
 
                 answer = "Image: " + await openaiRequest(message.content.slice(7), "image", false);
+                await saveChat(userId1, null, message.content);
+            } else if (message.content.toLowerCase().startsWith('!yukiclearchat')) {
+                await channel.sendTyping();
+                intervalId = setInterval(async () => {
+                    await channel.sendTyping();
+                }, 9000);
+
+                await Chat.destroy({
+                    where: {
+                        userId: userId1
+                    }
+                });
+
+                await Chat.destroy({
+                    where: {
+                        originalId: userId1
+                    }
+                });
+                answer = "System: Chat history cleared.";
+            } else if (message.content.toLowerCase().startsWith('!yukiforgetme')) {
+                await channel.sendTyping();
+                intervalId = setInterval(async () => {
+                    await channel.sendTyping();
+                }, 9000);
+
+                await Chat.destroy({
+                    where: {
+                        userId: userId1
+                    }
+                });
+
+                await Chat.destroy({
+                    where: {
+                        originalId: userId1
+                    }
+                });
+
+                await User.destroy({
+                    where: {
+                        discordUserName: discordUserName
+                    }
+                });
+
+                answer = "System: User data cleared.";
             } else if (message.content.toLowerCase().startsWith('!yuki') || naturalSpeech === "true") {
                 await channel.sendTyping();
                 intervalId = setInterval(async () => {
@@ -974,10 +1022,10 @@ client.on(Events.MessageCreate, async message => {
                 }, 9000);
 
                 answer = await openaiRequest(prompts, "chat", true);
+                await saveChat(userId1, null, message.content);
             } else {
                 return;
             }
-            await saveChat(userId1, message.content);
 
             if (answer.startsWith('User: ')) {
                 await updateUser(discordUserName, JSON.parse(answer.slice(6)).nickname, JSON.parse(answer.slice(6)).pronouns, JSON.parse(answer.slice(6)).age, JSON.parse(answer.slice(6)).likes, JSON.parse(answer.slice(6)).dislikes);
@@ -986,11 +1034,13 @@ client.on(Events.MessageCreate, async message => {
 
             if (answer.startsWith('Error:')) {
                 await message.reply(answer);
+            } else if (answer.startsWith('System: ')) {
+                await message.reply(answer.slice(8));
             } else if (answer.startsWith('Image: ')) {
                 await message.reply({ files: [{ attachment: answer.slice(7), name: 'image.png' }] });
-                saveChat("1", answer.slice(7));
+                await saveChat("1", userId1, answer.slice(7));
             } else if (!answer.toLowerCase().includes('ignore_message')) {
-                await saveChat("1", answer.replace(/assistant said/gi, ''));
+                await saveChat("1", userId1, answer.replace(/assistant said/gi, ''));
                 await sendChunks(answer.replace(/assistant said/gi, ''), message);
             } else {
                 await message.react('💙');
