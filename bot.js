@@ -471,31 +471,48 @@ async function openaiRequest(prompt, type, functions) {
                 prepend: false,
                 batch: {
                     graph: {
-                        id: "sdxl_text_to_image_graph",
+                        id: "sdxl_control_layers_graph",
                         nodes: {
                             sdxl_model_loader: {
                                 type: "sdxl_model_loader",
                                 id: "sdxl_model_loader",
                                 model: {
-                                    model_name: "stable-diffusion-xl-base-1-0",
-                                    base_model: "sdxl",
-                                    model_type: "main"
+                                    key: "a7b3f45a-f6be-419d-8334-a3732ca89cd1",
+                                    hash: "blake3:513f4835e2ddc210de6809aa38c9617f21be62606c2657964f3a8ca4f69daee2",
+                                    name: "stable-diffusion-xl-base-1-0",
+                                    base: "sdxl",
+                                    type: "main"
                                 },
-                                is_intermediate: true
+                                is_intermediate: true,
+                                use_cache: true
                             },
                             positive_conditioning: {
                                 type: "sdxl_compel_prompt",
                                 id: "positive_conditioning",
                                 prompt: prompt,
                                 style: prompt,
-                                is_intermediate: true
+                                is_intermediate: true,
+                                use_cache: true
+                            },
+                            positive_conditioning_collect: {
+                                type: "collect",
+                                id: "positive_conditioning_collect",
+                                is_intermediate: true,
+                                use_cache: true
                             },
                             negative_conditioning: {
                                 type: "sdxl_compel_prompt",
                                 id: "negative_conditioning",
                                 prompt: negativePrompt,
                                 style: negativePrompt,
-                                is_intermediate: true
+                                is_intermediate: true,
+                                use_cache: true
+                            },
+                            negative_conditioning_collect: {
+                                type: "collect",
+                                id: "negative_conditioning_collect",
+                                is_intermediate: true,
+                                use_cache: true
                             },
                             noise: {
                                 type: "noise",
@@ -504,47 +521,54 @@ async function openaiRequest(prompt, type, functions) {
                                 width: 1024,
                                 height: 1024,
                                 use_cpu: true,
-                                is_intermediate: true
+                                is_intermediate: true,
+                                use_cache: true
                             },
                             sdxl_denoise_latents: {
                                 type: "denoise_latents",
                                 id: "sdxl_denoise_latents",
                                 cfg_scale: 12,
+                                cfg_rescale_multiplier: 0,
                                 scheduler: "dpmpp_2m_k",
                                 steps: 50,
                                 denoising_start: 0,
                                 denoising_end: 1,
-                                is_intermediate: true
+                                is_intermediate: true,
+                                use_cache: true
                             },
                             latents_to_image: {
                                 type: "l2i",
                                 id: "latents_to_image",
                                 fp32: true,
-                                is_intermediate: true
+                                is_intermediate: false,
+                                use_cache: false
                             },
                             core_metadata: {
                                 id: "core_metadata",
                                 type: "core_metadata",
+                                is_intermediate: true,
+                                use_cache: true,
                                 generation_mode: "sdxl_txt2img",
                                 cfg_scale: 12,
+                                cfg_rescale_multiplier: 0,
                                 height: 1024,
                                 width: 1024,
-                                positive_prompt: prompt,
                                 negative_prompt: negativePrompt,
                                 model: {
-                                    model_name: "stable-diffusion-xl-base-1-0",
-                                    base_model: "sdxl",
-                                    model_type: "main"
+                                    key: "a7b3f45a-f6be-419d-8334-a3732ca89cd1",
+                                    hash: "blake3:513f4835e2ddc210de6809aa38c9617f21be62606c2657964f3a8ca4f69daee2",
+                                    name: "stable-diffusion-xl-base-1-0",
+                                    base: "sdxl",
+                                    type: "main"
                                 },
                                 steps: 50,
                                 rand_device: "cpu",
                                 scheduler: "dpmpp_2m_k",
-                                controlnets: [],
-                                loras: [],
-                                ipAdapters: [],
-                                t2iAdapters: [],
-                                positive_style_prompt: "",
-                                negative_style_prompt: ""
+                                negative_style_prompt: negativePrompt,
+                                control_layers: {
+                                    layers: [],
+                                    version: 3
+                                }
                             },
                             save_image: {
                                 id: "save_image",
@@ -554,26 +578,205 @@ async function openaiRequest(prompt, type, functions) {
                             }
                         },
                         edges: [
-                            { source: { node_id: "sdxl_model_loader", field: "unet" }, destination: { node_id: "sdxl_denoise_latents", field: "unet" } },
-                            { source: { node_id: "sdxl_model_loader", field: "clip" }, destination: { node_id: "positive_conditioning", field: "clip" } },
-                            { source: { node_id: "sdxl_model_loader", field: "clip2" }, destination: { node_id: "positive_conditioning", field: "clip2" } },
-                            { source: { node_id: "sdxl_model_loader", field: "clip" }, destination: { node_id: "negative_conditioning", field: "clip" } },
-                            { source: { node_id: "sdxl_model_loader", field: "clip2" }, destination: { node_id: "negative_conditioning", field: "clip2" } },
-                            { source: { node_id: "positive_conditioning", field: "conditioning" }, destination: { node_id: "sdxl_denoise_latents", field: "positive_conditioning" } },
-                            { source: { node_id: "negative_conditioning", field: "conditioning" }, destination: { node_id: "sdxl_denoise_latents", field: "negative_conditioning" } },
-                            { source: { node_id: "noise", field: "noise" }, destination: { node_id: "sdxl_denoise_latents", field: "noise" } },
-                            { source: { node_id: "sdxl_denoise_latents", field: "latents" }, destination: { node_id: "latents_to_image", field: "latents" } },
-                            { source: { node_id: "core_metadata", field: "metadata" }, destination: { node_id: "latents_to_image", field: "metadata" } },
-                            { source: { node_id: "sdxl_model_loader", field: "vae" }, destination: { node_id: "latents_to_image", field: "vae" } },
-                            { source: { node_id: "core_metadata", field: "metadata" }, destination: { node_id: "save_image", field: "metadata" } },
-                            { source: { node_id: "latents_to_image", field: "image" }, destination: { node_id: "save_image", field: "image" } }
+                            {
+                                source: {
+                                    node_id: "sdxl_model_loader",
+                                    field: "unet"
+                                },
+                                destination: {
+                                    node_id: "sdxl_denoise_latents",
+                                    field: "unet"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "sdxl_model_loader",
+                                    field: "clip"
+                                },
+                                destination: {
+                                    node_id: "positive_conditioning",
+                                    field: "clip"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "sdxl_model_loader",
+                                    field: "clip"
+                                },
+                                destination: {
+                                    node_id: "negative_conditioning",
+                                    field: "clip"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "sdxl_model_loader",
+                                    field: "clip2"
+                                },
+                                destination: {
+                                    node_id: "positive_conditioning",
+                                    field: "clip2"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "sdxl_model_loader",
+                                    field: "clip2"
+                                },
+                                destination: {
+                                    node_id: "negative_conditioning",
+                                    field: "clip2"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "positive_conditioning",
+                                    field: "conditioning"
+                                },
+                                destination: {
+                                    node_id: "positive_conditioning_collect",
+                                    field: "item"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "negative_conditioning",
+                                    field: "conditioning"
+                                },
+                                destination: {
+                                    node_id: "negative_conditioning_collect",
+                                    field: "item"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "positive_conditioning_collect",
+                                    field: "collection"
+                                },
+                                destination: {
+                                    node_id: "sdxl_denoise_latents",
+                                    field: "positive_conditioning"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "negative_conditioning_collect",
+                                    field: "collection"
+                                },
+                                destination: {
+                                    node_id: "sdxl_denoise_latents",
+                                    field: "negative_conditioning"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "noise",
+                                    field: "noise"
+                                },
+                                destination: {
+                                    node_id: "sdxl_denoise_latents",
+                                    field: "noise"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "sdxl_denoise_latents",
+                                    field: "latents"
+                                },
+                                destination: {
+                                    node_id: "latents_to_image",
+                                    field: "latents"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "sdxl_model_loader",
+                                    field: "vae"
+                                },
+                                destination: {
+                                    node_id: "latents_to_image",
+                                    field: "vae"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "core_metadata",
+                                    field: "metadata"
+                                },
+                                destination: {
+                                    node_id: "latents_to_image",
+                                    field: "metadata"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "core_metadata",
+                                    field: "metadata"
+                                },
+                                destination: {
+                                    node_id: "save_image",
+                                    field: "metadata"
+                                }
+                            },
+                            {
+                                source: {
+                                    node_id: "latents_to_image",
+                                    field: "image"
+                                },
+                                destination: {
+                                    node_id: "save_image",
+                                    field: "image"
+                                }
+                            }
                         ]
                     },
                     runs: 1,
                     data: [
                         [
-                            { node_path: "noise", field_name: "seed", items: [seed] },
-                            { node_path: "core_metadata", field_name: "seed", items: [seed] }
+                            {
+                                node_path: "noise",
+                                field_name: "seed",
+                                items: [
+                                    seed
+                                ]
+                            },
+                            {
+                                node_path: "core_metadata",
+                                field_name: "seed",
+                                items: [
+                                    seed
+                                ]
+                            }
+                        ],
+                        [
+                            {
+                                node_path: "positive_conditioning",
+                                field_name: "prompt",
+                                items: [
+                                    prompt
+                                ]
+                            },
+                            {
+                                node_path: "core_metadata",
+                                field_name: "positive_prompt",
+                                items: [
+                                    prompt
+                                ]
+                            },
+                            {
+                                node_path: "positive_conditioning",
+                                field_name: "style",
+                                items: [
+                                    prompt
+                                ]
+                            },
+                            {
+                                node_path: "core_metadata",
+                                field_name: "positive_style_prompt",
+                                items: [
+                                    prompt
+                                ]
+                            }
                         ]
                     ]
                 }
