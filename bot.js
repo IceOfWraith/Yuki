@@ -922,6 +922,8 @@ client.on(Events.MessageCreate, async message => {
                 messageFiltered = message.content.slice(6);
             } else if (message.content.toLowerCase().startsWith('!yukiimage')) {
                 messageFiltered = message.content.slice(11);
+            } else if (message.content.toLowerCase().startsWith('!yukiimagespoiler')) {
+                messageFiltered = message.content.slice(17);
             } else {
                 messageFiltered = message.content;
             }
@@ -1044,7 +1046,11 @@ client.on(Events.MessageCreate, async message => {
             } else if (answer.startsWith('System: ')) {
                 await message.reply(answer.slice(8));
             } else if (answer.startsWith('Image: ')) {
-                await message.reply({ files: [{ attachment: answer.slice(7), name: 'image.png' }] });
+                if (message.content.toLowerCase().startsWith('!yukiimagespoiler')) {
+                    await message.reply({ files: [{ attachment: answer.slice(7), name: 'SPOILER_image.png' }] });
+                } else {
+                    await message.reply({ files: [{ attachment: answer.slice(7), name: 'image.png' }] });
+                }
                 await saveChat("1", userId1, answer.slice(7));
             } else if (!answer.toLowerCase().includes('ignore_message')) {
                 await saveChat("1", userId1, answer.replace(/assistant said/gi, ''));
