@@ -918,12 +918,12 @@ client.on(Events.MessageCreate, async message => {
                 nickname = discordDisplayName;
             }
             let messageFiltered;
-            if (message.content.toLowerCase().startsWith('!yuki')) {
-                messageFiltered = message.content.slice(6);
+            if (message.content.toLowerCase().startsWith('!yukiimagespoiler')) {
+                messageFiltered = message.content.slice(18);
             } else if (message.content.toLowerCase().startsWith('!yukiimage')) {
                 messageFiltered = message.content.slice(11);
-            } else if (message.content.toLowerCase().startsWith('!yukiimagespoiler')) {
-                messageFiltered = message.content.slice(17);
+            } else if (message.content.toLowerCase().startsWith('!yuki')) {
+                messageFiltered = message.content.slice(6);
             } else {
                 messageFiltered = message.content;
             }
