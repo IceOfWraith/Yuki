@@ -459,6 +459,9 @@ async function openaiRequest(prompt, type, functions) {
                   console.log(requestBody);
                   try {
                     const response = await axios.post(`${modelURL}/v1/chat/completions`, requestBody);
+                    if (response.status !== 200) {
+                      return "Error: " + error.response.data;
+                    }
                     const answer = response.data.choices[0].message.content;
                     return answer;
                   } catch (error) {
@@ -481,9 +484,9 @@ async function openaiRequest(prompt, type, functions) {
                                 type: "sdxl_model_loader",
                                 id: "sdxl_model_loader",
                                 model: {
-                                    key: "a7b3f45a-f6be-419d-8334-a3732ca89cd1",
+                                    key: "26cfb31b-9a9a-4fe7-bb29-296e9162cc9b",
                                     hash: "blake3:513f4835e2ddc210de6809aa38c9617f21be62606c2657964f3a8ca4f69daee2",
-                                    name: "stable-diffusion-xl-base-1-0",
+                                    name: "stable-diffusion-xl-base-1.0",
                                     base: "sdxl",
                                     type: "main"
                                 },
@@ -559,9 +562,9 @@ async function openaiRequest(prompt, type, functions) {
                                 width: 1024,
                                 negative_prompt: negativePrompt,
                                 model: {
-                                    key: "a7b3f45a-f6be-419d-8334-a3732ca89cd1",
+                                    key: "26cfb31b-9a9a-4fe7-bb29-296e9162cc9b",
                                     hash: "blake3:513f4835e2ddc210de6809aa38c9617f21be62606c2657964f3a8ca4f69daee2",
-                                    name: "stable-diffusion-xl-base-1-0",
+                                    name: "stable-diffusion-xl-base-1.0",
                                     base: "sdxl",
                                     type: "main"
                                 },
@@ -573,12 +576,6 @@ async function openaiRequest(prompt, type, functions) {
                                     layers: [],
                                     version: 3
                                 }
-                            },
-                            save_image: {
-                                id: "save_image",
-                                type: "save_image",
-                                is_intermediate: false,
-                                use_cache: false
                             }
                         },
                         edges: [
@@ -710,26 +707,6 @@ async function openaiRequest(prompt, type, functions) {
                                 destination: {
                                     node_id: "latents_to_image",
                                     field: "metadata"
-                                }
-                            },
-                            {
-                                source: {
-                                    node_id: "core_metadata",
-                                    field: "metadata"
-                                },
-                                destination: {
-                                    node_id: "save_image",
-                                    field: "metadata"
-                                }
-                            },
-                            {
-                                source: {
-                                    node_id: "latents_to_image",
-                                    field: "image"
-                                },
-                                destination: {
-                                    node_id: "save_image",
-                                    field: "image"
                                 }
                             }
                         ]
@@ -918,8 +895,8 @@ client.on(Events.MessageCreate, async message => {
                 nickname = discordDisplayName;
             }
             let messageFiltered;
-            if (message.content.toLowerCase().startsWith('!yukiimagespoiler')) {
-                messageFiltered = message.content.slice(18);
+            if (message.content.toLowerCase().startsWith('!yukispoiler')) {
+                messageFiltered = message.content.slice(13);
             } else if (message.content.toLowerCase().startsWith('!yukiimage')) {
                 messageFiltered = message.content.slice(11);
             } else if (message.content.toLowerCase().startsWith('!yuki')) {
@@ -974,7 +951,7 @@ client.on(Events.MessageCreate, async message => {
             prompts.push(userPrompt);
             //console.log(prompts);
             let intervalId;
-            if (message.content.toLowerCase().startsWith('!yukiimage')) {
+            if (message.content.toLowerCase().startsWith('!yukiimage') || message.content.toLowerCase().startsWith('!yukispoiler')) {
                 await channel.sendTyping();
                 intervalId = setInterval(async () => {
                     await channel.sendTyping();
@@ -1031,6 +1008,9 @@ client.on(Events.MessageCreate, async message => {
                     await channel.sendTyping();
                 }, 9000);
                 answer = await openaiRequest(prompts, "chat", true);
+                if (answer === undefined) {
+                    answer = "Error: No response from OpenAI.";
+                }
                 await saveChat(userId1, null, messageFiltered);
             } else {
                 return;
@@ -1046,7 +1026,7 @@ client.on(Events.MessageCreate, async message => {
             } else if (answer.startsWith('System: ')) {
                 await message.reply(answer.slice(8));
             } else if (answer.startsWith('Image: ')) {
-                if (message.content.toLowerCase().startsWith('!yukiimagespoiler')) {
+                if (message.content.toLowerCase().startsWith('!yukispoiler')) {
                     await message.reply({ files: [{ attachment: answer.slice(7), name: 'SPOILER_image.png' }] });
                 } else {
                     await message.reply({ files: [{ attachment: answer.slice(7), name: 'image.png' }] });
